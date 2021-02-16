@@ -30,6 +30,20 @@ impl<D> Provider<D> for Box<dyn Provider<D>> {
     }
 }
 
+trait JoinIfNeeded {
+    fn join_if_needed(&self, _: &String) -> String;
+}
+impl JoinIfNeeded for Vec<String> {
+    fn join_if_needed(&self, sep: &String) -> String {
+        self.join(sep)
+    }
+}
+impl JoinIfNeeded for String {
+    fn join_if_needed(&self, _: &String) -> String {
+        format!("{}", self)
+    }
+}
+
 fn load_jpeg<P: AsRef<Path>>(path: P, max_size: Option<usize>) -> RahmenResult<DynamicImage> {
     let mut d = mozjpeg::Decompress::with_markers(mozjpeg::ALL_MARKERS).from_path(&path)?;
 
@@ -285,33 +299,18 @@ impl StatusLineFormatter {
             mut elements: I,
         ) -> RahmenResult<String> {
             let sep = &formatter.line_settings.separator;
-            trait JoinIfNeeded {
-                fn join_if_needed(&self) -> String;
-            }
-            impl JoinIfNeeded for Vec<String> {
-                fn join_if_needed(&self) -> String {
-                    self.join(&", ".to_string())
-                }
-            }
-            impl JoinIfNeeded for String {
-                fn join_if_needed(&self) -> String {
-                    format!("{}", self)
-                }
-            }
             // apply the line_transformations to the status line
             // postprocess the status line using a python function defined in the config file (if it exists)
+
             Ok(if let Some(code) = &formatter.py_postprocess_fn {
                 Python::with_gil(|py| -> PyResult<String> {
                     let tags = PyList::new(py, &elements.collect::<Vec<_>>());
                     code.call1(py, (tags, &formatter.line_settings.separator))?
                         .extract(py)
                 })?
-            }
-            //                let string = elements.join(&formatter.line_settings.separator);
-            else {
+            } else {
                 elements.collect()
-            }
-            .join_if_needed())
+            })
         }
 
         if self.line_settings.uniquify {
