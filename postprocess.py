@@ -85,7 +85,7 @@ def postprocess(items: [str], sep: str) -> str:
         print("Status line changed to:")
         print(outitems)
         items = outitems
-
+    # return info line as joined string, omitting empty fields
     return sep.join(filter(lambda x: len(x) > 0, items))
 
 

@@ -284,6 +284,20 @@ impl StatusLineFormatter {
             formatter: &StatusLineFormatter,
             mut elements: I,
         ) -> RahmenResult<String> {
+            let sep = &formatter.line_settings.separator;
+            trait JoinIfNeeded {
+                fn join_if_needed(&self) -> String;
+            }
+            impl JoinIfNeeded for Vec<String> {
+                fn join_if_needed(&self) -> String {
+                    self.join(&", ".to_string())
+                }
+            }
+            impl JoinIfNeeded for String {
+                fn join_if_needed(&self) -> String {
+                    format!("{}", self)
+                }
+            }
             // apply the line_transformations to the status line
             // postprocess the status line using a python function defined in the config file (if it exists)
             Ok(if let Some(code) = &formatter.py_postprocess_fn {
@@ -292,13 +306,12 @@ impl StatusLineFormatter {
                     code.call1(py, (tags, &formatter.line_settings.separator))?
                         .extract(py)
                 })?
-            } else {
-                let string = elements.join(&formatter.line_settings.separator);
-                formatter
-                    .line_transformations
-                    .iter()
-                    .fold(string, |sl, t| t.transform(sl))
-            })
+            }
+            //                let string = elements.join(&formatter.line_settings.separator);
+            else {
+                elements.collect()
+            }
+            .join_if_needed())
         }
 
         if self.line_settings.uniquify {
