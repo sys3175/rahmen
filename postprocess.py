@@ -26,12 +26,10 @@ def modify(items, ix_to_check, val_to_check, ix_to_modify, val_to_modify, ix_to_
     # modify an item in items if it is not set depending on s/th matching another item,
     # optionally mark item for deletion
     #
-    # if this item matches the control value, and
-    if items[ix_to_check] == val_to_check:
-        # if the item to be modified is not set,
-        if not items[ix_to_modify]:
-            # modify it
-            items[ix_to_modify] = val_to_modify
+    # if this item matches the control value, and if the item to be modified is not set,
+    if items[ix_to_check] == val_to_check and not items[ix_to_modify]:
+        # modify it
+        items[ix_to_modify] = val_to_modify
         # optionally mark item[ix] for deletion
         if ix_to_delete:
             delx.append(ix_to_delete)
@@ -44,16 +42,10 @@ def pp_s_korea(items, it, ix):
     # the following assumes that the province suffix '-do' has already been regexed away
     #
     # except in the case of Jeju, do this:
-    if items[ix - 1] != "Jeju":
-        # ...in the big cities, the name of the province is the well-known city name, so keep it
-        if items[ix - 1] not in ["Seoul"]:
-            # TODO this is WIP here, I haven't decided on what's looking better
-            # ...but drop the city district
-            # delx.append(ix - 2)
-            # else:
-            if items[ix - 1] not in ['Busan']:
-                # ...otherwise drop the province
-                delx.append(ix - 1)
+    # if items[ix - 1] != :
+    # ...in the big cities, the name of the province is the well-known city name, so keep it
+    if items[ix - 1] not in ["Jeju", "Seoul", 'Busan']:
+        delx.append(ix - 1)
     # cut away city quarter overkill
     quarter_parts = items[ix - 3].split(' ')
     if len(quarter_parts) > 1:
@@ -81,26 +73,27 @@ def pp_morocco(items, it, ix):
 
 
 # cantons and abbreviations for them, to be extended
-cantons = {'Zürich': 'ZH', 'Basel-Stadt': 'BS', 'St. Gallen': 'SG'}
+cantons = {'Zürich': 'ZH', 'Basel-Stadt': 'BS', 'St. Gallen': 'SG', 'Schwyz': 'SZ', 'Solothurn': 'SO'}
 
 
 def pp_ch_cantons(items, ix):
-    ct = ''
-    for canton in cantons.keys():
-        # input fields
+    for canton, abbr in cantons.items():
+        # input fields from metadata
         input_canton = items[ix - 1]
         city = items[ix - 2]
-        # if the dict term is in the input input_canton
+        # if the dict term is in the metadata input_canton, eg 'Zürich'
         if canton in input_canton:
-            # and if the city name is not port of the dict canton
+            # if the metadata city name is not part of the dict canton; eg 'Thalwil'
+            # (if the metadata city name is part of the dict canton; eg 'Zürich', we don't need the abbreviation)
             if city not in canton:
-                # append the canton's abbreviation
-                ct = ' ' + cantons.get(canton)
-            # mark city and country field for deletion
+                # append the canton's abbreviation: 'Thalwil ZH'
+                city = city + ' ' + abbr
+            # if canton found, mark city and country field for deletion
             delx.append(ix)
             delx.append(ix - 2)
-            # update input_canton field with city + abbreviation (or '')
-            items[ix - 1] = city + ct
+            # update input_canton field with city (+ abbreviation)
+            # eg Thalwil ZH or Zürich
+            items[ix - 1] = city
 
 
 def pp_ch(items, it, ix):
@@ -162,7 +155,6 @@ timespans = {
     '20201016': {'20201016': {'': {'': {'': {'': {'vom Dia': None}}}}}},
     '20201028': {'20201028': {'': {'': {'': {'': {'vom Dia': None}}}}}},
     '20201101': {'20210301': {'': {'': {'Himmelpfort (Mark)': None}}}},
-
 }
 
 
@@ -231,7 +223,7 @@ def pp_dia(ix):
         delx.append(ix + 1)
 
 
-# primitive global replacements: the dictionary has keys (to look up) and replacement values.
+# global replacements: the dictionary has keys (to look up) and replacement values.
 # these will be replaced wherever they occur
 # literal keys and regular expressions [https://docs.python.org/3/library/re.html] are allowed
 def pp_glob(items, glob_replacements):
