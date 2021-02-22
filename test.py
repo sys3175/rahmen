@@ -42,8 +42,8 @@ def test_glob3():
 def test_glob4():
     # test for global replacements (Zurich should be replaced by Zürich, ' Township', ' City', ' Province'
     # should be removed)
-    input = "Zurich Township|SubLocation Township|Location City|Zurich Province|Country|1.11.2001|Creator"
-    assert put_out(input) == "Zürich|SubLocation|Location|Zürich|Country|1.11.2001|Creator"
+    input = "Zurich Township|Marrakech Township|Location City|Zurich Province|Country|1.11.2001|Creator"
+    assert put_out(input) == "Zürich|Marrakesch|Location|Zürich|Country|1.11.2001|Creator"
 
 
 # we have to make up a test for every filtered item of input
@@ -64,24 +64,12 @@ def test_skorea1():
 
 
 def test_skorea2():
-    # except when ProvinceState is Busan, then it should return
-    # Name|Busan|Südkorea|1.11.2001|Creator
-    input = "Name|SubLocation|Location|Busan|Südkorea|1.11.2001|Creator"
-    assert put_out(input) == "Name|SubLocation|Location|Busan|Südkorea|1.11.2001|Creator"
+    # except when ProvinceState is in the list, then it should return
+    # Name|SubLocation|Location|LISTITEM|Südkorea|1.11.2001|Creator
+    for province in ["Jeju","Seoul",'Busan']:
+        input = "Name|SubLocation|Location|"+province+"|Südkorea|1.11.2001|Creator"
+        assert put_out(input) == "Name|SubLocation|Location|"+province+"|Südkorea|1.11.2001|Creator"
 
-
-def test_skorea3():
-    # except when ProvinceState is Seoul, then it should return
-    # Name|Seoul|Südkorea|1.11.2001|Creator
-    input = "Name|SubLocation|Location|Seoul|Südkorea|1.11.2001|Creator"
-    assert put_out(input) == "Name|SubLocation|Location|Seoul|Südkorea|1.11.2001|Creator"
-
-
-def test_skorea4():
-    # except when ProvinceState is Jeju, then it should return
-    # Name|Location|Jeju|Südkorea|1.11.2001|Creator
-    input = "Name|SubLocation|Location|Jeju|Südkorea|1.11.2001|Creator"
-    assert put_out(input) == "Name|SubLocation|Location|Jeju|Südkorea|1.11.2001|Creator"
 
 def test_skorea5():
     # tests landmark adding
@@ -96,12 +84,12 @@ def test_mark():
     assert put_out(input) == "Name|SubLocation|Location (Mark)|Country|1.11.2001|Creator"
 
 def test_mark2():
-    # the Mark function should return Name|Sublocation|Location (Mark)|Country|1.11.2001|Creator
+    # we have to modify for Fürstenberg
     input = "Name|SubLocation|Fürstenberg|Mark|Country|1.11.2001|Creator"
     assert put_out(input) == "Name|SubLocation|Fürstenberg (Havel)|Country|1.11.2001|Creator"
 
 def test_mark3():
-    # the Mark function should return Name|Sublocation|Location (Mark)|Country|1.11.2001|Creator
+    # we omit Fürstenberg in case of Himmelpfort
     input = "Name|Himmelpfort|Fürstenberg|Mark|Country|1.11.2001|Creator"
     assert put_out(input) == "Name|Himmelpfort (Mark)|Country|1.11.2001|Creator"
 
@@ -150,7 +138,7 @@ def test_ch4():
     # ...except when input is "Name|SubLocation|Zürich|Kanton Zürich|Schweiz|1.11.2001|Creator"
     # when the canton's name is in the city name
     # then we want to see "Name|SubLocation|Zürich|1.11.2001|Creator"
-    cities = ['Zürich', 'Basel', 'St. Gallen']
+    cities = ['Zürich', 'Basel', 'St. Gallen', 'Solothurn', 'Schwyz']
     for city in cities:
         for canton in postprocess.cantons.keys():
             if city in canton:
