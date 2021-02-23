@@ -54,7 +54,7 @@ def pp_s_korea(items, it, ix):
     # TODO we could move this to a dict
     modify(items, ix - 3, 'Pungcheon', ix - 4, 'Hahoe', ix - 3)
     modify(items, ix - 3, 'Sanga', ix - 4, 'Woryeonggyo-Brücke', ix - 3)
-    modify(items, ix - 3, 'Jinheon', ix - 4, 'Bulguksa', ix - 3)
+    modify(items, ix - 3, 'Jinhyeon', ix - 4, 'Bulguksa', ix - 3)
     modify(items, ix - 3, 'Cheongnyong', ix - 4, 'Beomeosa', ix - 3)
     return items
 
