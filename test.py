@@ -140,8 +140,9 @@ def test_timeline1():
     assert put_out(input) == "Name|SubLocation|Location|ProvinceState|USA|08-13-2012|Creator"
 
 
+
 def test_timeline2():
-    # this should return USA as country, NY as state, 'In teh Catskills' as sublocation, but leave Location untouched
+    # this should return USA as country, NY as state, 'In the Catskills' as sublocation, but leave Location untouched
     input = "||Location|||08-20-2012|Creator"
     assert put_out(input) == "|In the Catskills|Location|NY|USA|08-20-2012|Creator"
 

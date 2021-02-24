@@ -101,8 +101,8 @@ def pp_ch_cantons(items, ix):
 
 
 # This defines timespans per country (province/state,(city, (...)).
-# We use only the key values, the value for the last key has to be None.
-# { 'Start date': {'End date': {'Country': None}}, ... }
+# These are tuples (lists) of values.
+# ('Start date','End date','Country','ProvinceState', 'City','Quarter','Info')
 # This matches the metatags that are defined in the config file, but the order is reversed here.
 # This example assumes that the config file metatags amount to
 # Name, Sublocation, Location, ProvinceState, Country, Date, Creator
@@ -112,82 +112,61 @@ def pp_ch_cantons(items, ix):
 # To skip items (leave them untouched), insert an empty string.
 # Existing entries will not be overwritten.
 # The start date has to be unique. Do not overlap end dates, when they do, the entry starting first wins.
-timespans = {
-    # 8-12-2012 to 8-14-2012, photos were taken in NY City
-    '20120812': {'20120814': {'USA': {'NY': {'New York': None}}}},
-    # 8-15-2012 to 8-28-2012, photos were taken in the Catskills
-    '20120815': {'20120828': {'USA': {'NY': {'': {'In the Catskills': None}}}}},
-    # 10-19-2013, photos were taken at Pyramid Lake
-    '20131019': {'20131019': {'USA': {'NV': {'Pyramid Lake': None}}}},
-    # from 4-20-2019 to 5-22-2019, photos are from the US
-    '20190420': {'20190522': {'USA': None}},
-    # from 1-10-2020 to 1-22-2020, photos are from Portugal
-    '20200110': {'20200122': {'Portugal': None}},
-    # 10-16 and 10-28-2020, Photos were repro'd from slides
-    '20201016': {'20201016': {'': {'': {'': {'': {'From Slide': None}}}}}},
-    '20201028': {'20201028': {'': {'': {'': {'': {'From Slide': None}}}}}},
-
-}
-
-
-# consume the rest of the timespan after country
-def pp_consume_timespan(key_list, items, pos):
-    # build the timespans dict access for the current key from the key list
-    # if there are more items in the timespan than items configured, we stop, but that's ok as it is an error.
-    # TODO there might be a better way than using eval...
-    # this gives timespans[key][key][...]...
-    eval_base = "timespans['" + "']['".join(key_list) + "']"
-    # now look for the key
-    for next_key in eval(eval_base + ".keys()"):
-        # move our pointer
-        pos = pos + 1
-        # we're going backward
-        i_pos = len(items) - pos
-        # unfortunately, lists wrap, we have to take care of that, otherwise we might overwrite values
-        # when we find too many items in a timespan entry, we stop and throw an alert
-        if i_pos < 0:
-            raise ValueError('Too many items in timespan: ' + str(key_list) + ' >>> ' + next_key)
-        else:
-            # item not set?
-            if not items[i_pos]:
-                # let's set it.
-                items[i_pos] = next_key
-            # is there another key in the queue? Otherwise, we're done.
-            if eval(eval_base + ".get('" + next_key + "')") is not None:
-                # if there is, do it again for the next key
-                key_list.append(next_key)
-                items = pp_consume_timespan(key_list, items, pos)
-    return items
+timespans_tuples = (
+                    ('20120815', '20120828', 'USA', 'NY', '', 'In the Catskills'),
+                    ('20120812', '20120814', 'USA', 'NY', 'New York'),
+                    ('20131019', '20131019', 'USA', 'NV', 'Pyramid Lake'),
+                    ('20190420', '20190522', 'USA'),
+                    ('20200110', '20200122', 'Portugal'),
+                    ('20201016', '20201016', '', '', '', '', 'From Slide'),
+                    ('20201028', '20201028', '', '', '', '', 'From Slide'),
+                    )
 
 
 # add information to image if the image data is inside a timespan
 def pp_metadata_from_timespan(items):
-    # we assume that 'date' is the item before the last (hence the pos[ition] is set to 2 below,
-    # lenght(items)-pos pointing to that place) and that it's formatted d.m.yyyy
+    # we assume that 'date' is the item before the last (hence the i_start is set to 2 below,
+    # lenght(items)-i_start pointing to that place) and that it's formatted d.m.yyyy
     # and that 'country' is the item before date
     # this has to be configured that way in the configuration file
-    # no real error checking is being done here, but
-    # the conditionals should catch crashes from missing indices
-    pos = 2
+    # no real error checking is being done here
+    i_start = 2
+    i_length = len(items)
+    i_pos = i_length - i_start
     # we need at least country|date|something, so more than two items
-    if len(items) > pos:
+    if len(items) > i_start:
         # get the strings for day, month, year (input format yyyy-mm-dd)
-        i_date_list = items[len(items) - pos].split('-')
+        i_date_list = items[i_pos].split('-')
         print(i_date_list, len(i_date_list))
         # without 3 items, it's not a correct date
         if len(i_date_list) == 3:
             # convert the date string to YYYYMMDD (add leading zeros if necessary)
             i_date = i_date_list[2] + i_date_list[0].zfill(2) + i_date_list[1].zfill(2)
-            # we look for our dates
-            for start_date in timespans.keys():
-                if i_date >= start_date:
-                    # 'for' assigns an anonymous key to a variable, which is what we need, even if
-                    # there will be only one key
-                    for end_date in timespans[start_date].keys():
+            # make timespan tuple iterable
+            timespans_tuples_iter = iter(timespans_tuples)
+            while True:
+                try:
+                    # get first tuple from the timespans
+                    timespan_iter = iter(next(timespans_tuples_iter))
+                    # look for our dates
+                    start_date = next(timespan_iter)
+                    if i_date >= start_date:
+                        end_date = next(timespan_iter)
                         if i_date <= end_date:
-                            key_list = [start_date, end_date]
-                            # now we consume the timespan data
-                            items = pp_consume_timespan(key_list, items, pos)
+                            # we have a hit on the timespan
+                            # now, move to the item before the date
+                            i_pos = i_pos - 1
+                            # work through the tuple
+                            while i_pos >= 0:
+                                # get the next new item from the timespan tuple
+                                new_item = next(timespan_iter)
+                                # set the metadata item if it isn't set already
+                                if not items[i_pos]:
+                                    items[i_pos] = new_item
+                                # move our pointer, we're going backward
+                                i_pos = i_pos - 1
+                except StopIteration:
+                    break
     return (items)
 
 
