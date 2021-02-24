@@ -140,7 +140,6 @@ def test_timeline1():
     assert put_out(input) == "Name|SubLocation|Location|ProvinceState|USA|08-13-2012|Creator"
 
 
-
 def test_timeline2():
     # this should return USA as country, NY as state, 'In the Catskills' as sublocation, but leave Location untouched
     input = "||Location|||08-20-2012|Creator"
@@ -165,7 +164,7 @@ def test_timeline5():
     # minimal items, tests that we do not go beyond left border
     # this will not work when there's more in timespan than the country only
     # (practically, this is not happening, because we would feed it with more empty items...)
-    # see #8 for this
+    # see #7 for this
     # this should return USA as country
     input = "|05-01-2019|Creator"
     assert put_out(input) == "USA|05-01-2019|Creator"
@@ -188,11 +187,3 @@ def test_timeline8():
     # this should return no values except 'From Slide|Creator'
     input = "|SubLocation|Location|ProvinceState|Country|10-16-2020|Creator"
     assert put_out(input) == "From Slide|Creator"
-
-# def test_timeline9():
-#    with pytest.raises(ValueError, match=r"Too many items in timespan:*"):
-# too many timespan entries test
-# add the line below to the timespans before running this
-# '19141008': {'19141008': {'USA': {'PA': {'Philadelphia': {'30th Street Station':{ 'Something':{ 'This here is too much': None}}}}}}},
-#        input = "||||8.10.1914|Creator"
-#        print(put_out(input))

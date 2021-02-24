@@ -46,7 +46,7 @@ def pp_s_korea(items, it, ix):
     # the following assumes that the province suffix '-do' has already been regexed away
     #
     # ...in the big cities  and in Jeju, the name of the province is the well-known name, so keep it
-    if items[ix - 1] not in ["Seoul", "Jeju", "Busan"]:
+    if items[ix - 1] not in ("Seoul", "Jeju", "Busan"):
         # ...otherwise drop the province
         delx.append(ix - 1)
     # cut away city quarter overkill
@@ -101,7 +101,7 @@ def pp_ch_cantons(items, ix):
 
 
 # This defines timespans per country (province/state,(city, (...)).
-# These are tuples (lists) of values.
+# These are tuples (immutable lists) of values.
 # ('Start date','End date','Country','ProvinceState', 'City','Quarter','Info')
 # This matches the metatags that are defined in the config file, but the order is reversed here.
 # This example assumes that the config file metatags amount to
@@ -113,14 +113,14 @@ def pp_ch_cantons(items, ix):
 # Existing entries will not be overwritten.
 # The start date has to be unique. Do not overlap end dates, when they do, the entry starting first wins.
 timespans_tuples = (
-                    ('20120815', '20120828', 'USA', 'NY', '', 'In the Catskills'),
-                    ('20120812', '20120814', 'USA', 'NY', 'New York'),
-                    ('20131019', '20131019', 'USA', 'NV', 'Pyramid Lake'),
-                    ('20190420', '20190522', 'USA'),
-                    ('20200110', '20200122', 'Portugal'),
-                    ('20201016', '20201016', '', '', '', '', 'From Slide'),
-                    ('20201028', '20201028', '', '', '', '', 'From Slide'),
-                    )
+    ('20120815', '20120828', 'USA', 'NY', '', 'In the Catskills'),
+    ('20120812', '20120814', 'USA', 'NY', 'New York'),
+    ('20131019', '20131019', 'USA', 'NV', 'Pyramid Lake'),
+    ('20190420', '20190522', 'USA'),
+    ('20200110', '20200122', 'Portugal'),
+    ('20201016', '20201016', '', '', '', '', 'From Slide'),
+    ('20201028', '20201028', '', '', '', '', 'From Slide'),
+)
 
 
 # add information to image if the image data is inside a timespan
@@ -137,36 +137,35 @@ def pp_metadata_from_timespan(items):
     if len(items) > i_start:
         # get the strings for day, month, year (input format yyyy-mm-dd)
         i_date_list = items[i_pos].split('-')
-        print(i_date_list, len(i_date_list))
         # without 3 items, it's not a correct date
         if len(i_date_list) == 3:
             # convert the date string to YYYYMMDD (add leading zeros if necessary)
             i_date = i_date_list[2] + i_date_list[0].zfill(2) + i_date_list[1].zfill(2)
-            # make timespan tuple iterable
-            timespans_tuples_iter = iter(timespans_tuples)
-            while True:
-                try:
-                    # get first tuple from the timespans
-                    timespan_iter = iter(next(timespans_tuples_iter))
-                    # look for our dates
-                    start_date = next(timespan_iter)
-                    if i_date >= start_date:
-                        end_date = next(timespan_iter)
-                        if i_date <= end_date:
-                            # we have a hit on the timespan
-                            # now, move to the item before the date
-                            i_pos = i_pos - 1
-                            # work through the tuple
-                            while i_pos >= 0:
+            for timespan in timespans_tuples:
+                # make timespan tuple iterable
+                timespan_iter = iter(timespan)
+                # get first tuple from the timespans
+                # look for our dates
+                start_date = next(timespan_iter)
+                if i_date >= start_date:
+                    end_date = next(timespan_iter)
+                    if i_date <= end_date:
+                        # we have a hit on the timespan
+                        # now, move to the item before the date
+                        i_pos = i_pos - 1
+                        # don't wrap around the item list
+                        while i_pos >= 0:
+                            try:
+                                # work through the tuple:
                                 # get the next new item from the timespan tuple
                                 new_item = next(timespan_iter)
-                                # set the metadata item if it isn't set already
+                                # set the metadata item from the timespan item if it isn't set already
                                 if not items[i_pos]:
                                     items[i_pos] = new_item
-                                # move our pointer, we're going backward
+                                # move our item pointer, we're going backward
                                 i_pos = i_pos - 1
-                except StopIteration:
-                    break
+                            except StopIteration:
+                                break
     return (items)
 
 
