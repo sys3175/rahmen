@@ -153,18 +153,21 @@ def pp_metadata_from_timespan(items):
                         # we have a hit on the timespan
                         # now, move to the item before the date
                         i_pos = i_pos - 1
-                        # don't wrap around the item list
+                        # don't wrap around the item list (this catches and ignores too many items in timespan tuple)
                         while i_pos >= 0:
+                            # this catches the end of the timespan tuple
                             try:
                                 # work through the tuple:
                                 # get the next new item from the timespan tuple
                                 new_item = next(timespan_iter)
                                 # set the metadata item from the timespan item if it isn't set already
-                                if not items[i_pos]:
+                                # (and is not empty)
+                                if not items[i_pos] and new_item:
                                     items[i_pos] = new_item
                                 # move our item pointer, we're going backward
                                 i_pos = i_pos - 1
                             except StopIteration:
+                                # no more items in tuple, so we're done
                                 break
     return (items)
 
