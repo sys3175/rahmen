@@ -16,9 +16,10 @@ import re
 # and the offsets:      ^^^⁻4,^^^-3,   ^^^-2,            ^^^-1          ^^^  ^^^+1 ^^^+2
 # so the 'info' field would be at index-4, the 'creator' field at index+2
 #
-# The output will be unconditionally cleaned of empties and uniquified unless you return a list of just one item
+# The output will later, in the rahmen program, be unconditionally cleaned of empties and uniquified unless you
+# return a list of just one item
 # (see the example at the end)
-#
+# ----------------------------------------------------------------------------------------------------------------------
 # this holds the item positions we want to drop
 # dropping cannot be done ad hoc because it would shift the positions
 delx = []
@@ -79,23 +80,23 @@ def pp_morocco(items, it, ix):
 cantons = {'Zürich': 'ZH', 'Basel-Stadt': 'BS', 'St. Gallen': 'SG'}
 
 
-# Someplace, Canton of Zürich, => Someplace ZH, unless Someplace in 'Canton of Zürich'
+# Someplace, Canton of Zürich, => Someplace ZH, unless Someplace in 'Canton of Zürich', then just Someplace
 def pp_ch_cantons(items, ix):
     ct = ''
-    for canton in cantons.keys():
+    for canton, c_abbr in cantons.items():
         # input fields
         input_canton = items[ix - 1]
         city = items[ix - 2]
         # if the dict term is in the input input_canton
         if canton in input_canton:
-            # and if the city name is not port of the dict canton
+            # only if the city name is not port of the dict canton...
             if city not in canton:
-                # append the canton's abbreviation
-                ct = ' ' + cantons.get(canton)
+                # ...append the canton's abbreviation
+                ct = ' ' + c_abbr
             # mark city and country field for deletion
             delx.append(ix)
             delx.append(ix - 2)
-            # update input_canton field with city + abbreviation (or '')
+            # update input_canton field with city + abbreviation (if any)
             items[ix - 1] = city + ct
     return items
 
@@ -112,7 +113,7 @@ def pp_ch_cantons(items, ix):
 # To skip items (leave them untouched), insert an empty string.
 # Existing entries will not be overwritten.
 # The start date has to be unique. Do not overlap end dates, when they do, the entry starting first wins.
-timespans_tuples = (
+timespans = (
     ('20120815', '20120828', 'USA', 'NY', '', 'In the Catskills'),
     ('20120812', '20120814', 'USA', 'NY', 'New York'),
     ('20131019', '20131019', 'USA', 'NV', 'Pyramid Lake'),
@@ -130,41 +131,48 @@ def pp_metadata_from_timespan(items):
     # and that 'country' is the item before date
     # this has to be configured that way in the configuration file
     # no real error checking is being done here
+    # this assumes the item list is configured like this:
+    # ['info', 'sublocation', 'location', 'provincestate', 'country', 'date', 'creator']
+    # we start at date, which is at len()-2                            ^^^-2
+    # so our starting value is 2
     i_start = 2
-    i_length = len(items)
-    i_pos = i_length - i_start
-    # we need at least country|date|something, so more than two items
+    # which gives us the poistion of date
+    i_pos = len(items) - i_start
+    # we need at least country|date|creator, so, more items than just counted from or starting point
     if len(items) > i_start:
-        # get the strings for day, month, year (input format yyyy-mm-dd)
+        # let's look at what's at the date position and try to
+        # get the strings for day, month, year (input format m-d-yyyy)
+        # this should give us M, D, YYYY @ 0, 1, 2
         i_date_list = items[i_pos].split('-')
-        # without 3 items, it's not a correct date
+        # without 3 items, it's not a correct date (this is only _very_ basic error checking)
         if len(i_date_list) == 3:
-            # convert the date string to YYYYMMDD (add leading zeros if necessary)
+            # convert the date string to YYYYMMDD to make it sortable (add leading zeros if necessary)
             i_date = i_date_list[2] + i_date_list[0].zfill(2) + i_date_list[1].zfill(2)
-            for timespan in timespans_tuples:
+            for timespan in timespans:
                 # make timespan tuple iterable
                 timespan_iter = iter(timespan)
                 # get first tuple from the timespans
-                # look for our dates
+                # to compare with the item's date
                 start_date = next(timespan_iter)
                 if i_date >= start_date:
                     end_date = next(timespan_iter)
                     if i_date <= end_date:
                         # we have a hit on the timespan
-                        # now, move to the item before the date
+                        # now, move the position to the item before the date (should be 'country')
                         i_pos = i_pos - 1
                         # don't wrap around the item list (this catches and ignores too many items in timespan tuple)
                         while i_pos >= 0:
-                            # this catches the end of the timespan tuple
+                            # this try block catches the end of the timespan tuple because it will be left if there's
+                            # no more 'next'
                             try:
-                                # work through the tuple:
-                                # get the next new item from the timespan tuple
+                                # work through the timespan tuple:
+                                # get the next new item from the timespan tuple...
                                 new_item = next(timespan_iter)
-                                # set the metadata item from the timespan item if it isn't set already
-                                # (and is not empty)
+                                # ...set the metadata item from the timespan item if it isn't set already
+                                # (and is not empty)...
                                 if not items[i_pos] and new_item:
                                     items[i_pos] = new_item
-                                # move our item pointer, we're going backward
+                                # ...move our item pointer to the previous item (we're going backward)
                                 i_pos = i_pos - 1
                             except StopIteration:
                                 # no more items in tuple, so we're done
